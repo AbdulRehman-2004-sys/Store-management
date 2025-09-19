@@ -11,9 +11,12 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-  origin: "https://taimoor-akram-brothers.netlify.app", // frontend URL
-  credentials: true, // allow credentials (cookies, authorization headers, etc.)
+  origin: "https://taimoor-akram-brothers.netlify.app",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
+
 
 // DB connection
 const connectDB = async () => {
