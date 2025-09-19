@@ -26,7 +26,7 @@ export default function Login() {
     try {
       // 👉 Send login request
       const response = await axios.post(
-        'http://localhost:8080/api/auth/login',
+        'https://store-management-backend-hcpb.onrender.com/api/auth/login',
         {
           email: formData.email,
           password: formData.password,

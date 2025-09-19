@@ -63,7 +63,7 @@ const Form = () => {
         })),
       };
 
-      const res = await axios.post("http://localhost:8080/api/sessions/create", payload,
+      const res = await axios.post("https://store-management-backend-hcpb.onrender.com/api/sessions/create", payload,
         {
           headers: {
             "Content-Type": "application/json"

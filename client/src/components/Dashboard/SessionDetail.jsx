@@ -22,7 +22,7 @@ const SessionDetail = () => {
   const fetchById = async () => {
     setDetailLoading(true);
     try {
-      const res = await axios.get(`http://localhost:8080/api/sessions/${id}`,
+      const res = await axios.get(`https://store-management-backend-hcpb.onrender.com/api/sessions/${id}`,
         {
           headers: {
             "Content-Type": "application/json"
@@ -129,7 +129,7 @@ const SessionDetail = () => {
     if (!extraAmount || isNaN(extraAmount)) return alert("Enter valid amount");
     setLoading(true)
     try {
-      const res = await axios.patch(`http://localhost:8080/api/sessions/${id}/add-amount`, { amount: Number(extraAmount) },
+      const res = await axios.patch(`https://store-management-backend-hcpb.onrender.com/api/sessions/${id}/add-amount`, { amount: Number(extraAmount) },
         {
           headers: {
             "Content-Type": "application/json"
@@ -155,7 +155,7 @@ const SessionDetail = () => {
     if (!payAmount || isNaN(payAmount)) return alert("Enter valid amount");
     setLoading(true)
     try {
-      const res = await axios.patch(`http://localhost:8080/api/sessions/${id}/pay`, { amount: Number(payAmount) },
+      const res = await axios.patch(`https://store-management-backend-hcpb.onrender.com/api/sessions/${id}/pay`, { amount: Number(payAmount) },
         {
           headers: {
             "Content-Type": "application/json"
@@ -181,7 +181,7 @@ const SessionDetail = () => {
     if (!newItem.item || !newItem.quantity || !newItem.price) return alert("Fill all fields");
     setLoading(true)
     try {
-      const res = await axios.patch(`http://localhost:8080/api/sessions/${id}/add-item`, newItem,
+      const res = await axios.patch(`https://store-management-backend-hcpb.onrender.com/api/sessions/${id}/add-item`, newItem,
         {
           headers: {
             "Content-Type": "application/json"
@@ -207,7 +207,7 @@ const SessionDetail = () => {
     try {
       alert("Are you sure you want to delete this item?");
       const res = await axios.delete(
-        `http://localhost:8080/api/sessions/${sessionId}/items/${itemId}`,
+        `https://store-management-backend-hcpb.onrender.com/api/sessions/${sessionId}/items/${itemId}`,
         {
           headers: {
             "Content-Type": "application/json"

@@ -21,7 +21,7 @@ const Dashboard = () => {
   const fetchAll = async () => {
     setLoading(true);
     try {
-      const res = await axios.get("http://localhost:8080/api/sessions",
+      const res = await axios.get("https://store-management-backend-hcpb.onrender.com/api/sessions",
         {
           headers: {
             "Content-Type": "application/json"
@@ -45,7 +45,7 @@ const Dashboard = () => {
     if (!window.confirm("Are you sure you want to delete this khata?")) return;
 
     try {
-      const res = await axios.delete(`http://localhost:8080/api/sessions/${id}`,
+      const res = await axios.delete(`https://store-management-backend-hcpb.onrender.com/api/sessions/${id}`,
         {
           headers: {
             "Content-Type": "application/json"
@@ -66,7 +66,7 @@ const Dashboard = () => {
 
   const handleLogout = async () => {
   try {
-    await axios.post("http://localhost:8080/api/auth/logout", {}, {
+    await axios.post("https://store-management-backend-hcpb.onrender.com/api/auth/logout", {}, {
       withCredentials: true, // ✅ send cookies
     });
     toast.success("Logged out successfully");
