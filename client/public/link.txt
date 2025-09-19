@@ -1,0 +1,5 @@
+npm install -g npm@11.6.0
+
+1.Pay krne k baad bakaya ko set krna h backend mei.
+2.agr koi or item add kre to uski amount automaticaaly add ho jae previous amount mei.
+3.
