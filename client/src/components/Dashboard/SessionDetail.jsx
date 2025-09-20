@@ -49,79 +49,118 @@ const SessionDetail = () => {
   }, [id]);
 
   const downloadReceipt = () => {
-    if (!session) return;
-    const doc = new jsPDF();
+  if (!session) return;
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
 
-    // === Title ===
-    doc.setFontSize(20);
+  // === 🌟 Store Name ===
+  doc.setFontSize(26);
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(40, 40, 40); // dark grey
+  doc.text("Taimoor Akram & Brothers", pageWidth / 2, 20, { align: "center" });
+
+  // Decorative double line
+  doc.setDrawColor(0);
+  doc.setLineWidth(0.8);
+  doc.line(20, 25, pageWidth - 20, 25);
+  doc.setLineWidth(0.3);
+  doc.line(20, 28, pageWidth - 20, 28);
+
+  // === 🧾 Receipt Title ===
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.text("Customer Receipt", pageWidth / 2, 40, { align: "center" });
+
+  // === Border Around Content ===
+  doc.setDrawColor(0);
+  doc.setLineWidth(0.5);
+  doc.rect(10, 35, pageWidth - 20, 250);
+
+  // === Customer Info ===
+  doc.setFontSize(12);
+  doc.setTextColor(50, 50, 50);
+  let y = 55;
+
+  const addField = (label, value) => {
     doc.setFont("helvetica", "bold");
-    const pageWidth = doc.internal.pageSize.getWidth();
-    doc.text("Customer Receipt", pageWidth / 2, 20, { align: "center" });
-
-    // === Draw border ===
-    doc.setDrawColor(0); // black
-    doc.setLineWidth(0.5);
-    doc.rect(10, 10, pageWidth - 20, 270); // rectangle border
-
-    // === Customer Info ===
-    doc.setFontSize(12);
-    let y = 40;
-
-    const addField = (key, value) => {
-      doc.setFont("helvetica", "bold");
-      doc.text(`${key}:`, 20, y);
-      doc.setFont("helvetica", "normal");
-      doc.text(value?.toString() || "", 60, y);
-      // underline value
-      const textWidth = doc.getTextWidth(value?.toString() || "");
-      doc.line(60, y + 1, 60 + textWidth, y + 1);
-      y += 10;
-    };
-
-    addField("Customer Name", session.customerName);
-    addField("Contact", session.contactNumber);
-    addField("Date", new Date(session.createdAt).toLocaleString());
-
-    // === Items Section ===
-    y += 5;
-    doc.setFont("helvetica", "bold");
-    doc.text("Items:", 20, y);
-    y += 10;
-
-    session.items.forEach((it, i) => {
-      doc.setFont("helvetica", "normal");
-      doc.text(
-        `${i + 1}. ${it.item} - ${it.quantity} x ${it.price} = ${it.quantity * it.price
-        }`,
-        25,
-        y
-      );
-      y += 8;
-    });
-
-    // === Totals ===
-    y += 10;
-    doc.setFont("helvetica", "bold");
-    doc.text(`Grand Total:`, 20, y);
+    doc.text(`${label}:`, 20, y);
     doc.setFont("helvetica", "normal");
-    doc.text(`${session.grandTotal}`, 60, y);
-    doc.line(60, y + 1, 60 + doc.getTextWidth(`${session.grandTotal}`), y + 1);
-
+    const val = value?.toString() || "";
+    doc.text(val, 65, y);
+    // underline value
+    const textWidth = doc.getTextWidth(val);
+    doc.setDrawColor(150);
+    doc.line(65, y + 1, 65 + textWidth, y + 1);
     y += 10;
-    doc.setFont("helvetica", "bold");
-    doc.text(`Remaining:`, 20, y);
-    doc.setFont("helvetica", "normal");
-    doc.text(`${session.remaining ?? 0}`, 60, y);
-    doc.line(
-      60,
-      y + 1,
-      60 + doc.getTextWidth(`${session.remaining ?? 0}`),
-      y + 1
-    );
-
-    // === Save File ===
-    doc.save(`${session.customerName}_receipt.pdf`);
   };
+
+  addField("Customer Name", session.customerName);
+  addField("Contact", session.contactNumber);
+  addField(
+    "Date",
+    new Date(session.createdAt).toLocaleString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  );
+
+  // === Items ===
+  y += 5;
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 30, 30);
+  doc.text("Purchased Items:", 20, y);
+  y += 8;
+
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(60, 60, 60);
+  session.items.forEach((it, i) => {
+    doc.text(
+      `${i + 1}) ${it.item} — ${it.quantity} × ${it.price} = ${(
+        it.quantity * it.price
+      ).toFixed(2)}`,
+      25,
+      y
+    );
+    y += 8;
+  });
+
+  // === Totals ===
+  y += 10;
+  doc.setTextColor(0, 0, 0);
+  doc.setFont("helvetica", "bold");
+  doc.text("Grand Total:", 20, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(`${session.grandTotal}`, 65, y);
+  doc.line(65, y + 1, 65 + doc.getTextWidth(`${session.grandTotal}`), y + 1);
+
+  y += 10;
+  doc.setFont("helvetica", "bold");
+  doc.text("Remaining:", 20, y);
+  doc.setFont("helvetica", "normal");
+  doc.text(`${session.remaining ?? 0}`, 65, y);
+  doc.line(
+    65,
+    y + 1,
+    65 + doc.getTextWidth(`${session.remaining ?? 0}`),
+    y + 1
+  );
+
+  // === Thank You Footer ===
+  doc.setFontSize(14);
+  doc.setFont("helvetica", "italic");
+  doc.setTextColor(80, 80, 80);
+  doc.text("✨ Thank you for shopping with us ✨", pageWidth / 2, 280, {
+    align: "center",
+  });
+
+  // Save PDF
+  doc.save(`${session.customerName}_receipt.pdf`);
+};
+
 
 
   // ✅ Handle Add Amount
