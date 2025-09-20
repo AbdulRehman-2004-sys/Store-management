@@ -6,17 +6,30 @@ import toast from "react-hot-toast";
 import { useRef } from "react";
 
 const Dashboard = () => {
+
   const [sessions, setSessions] = useState([]);
   const [filteredSessions, setFilteredSessions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const navigate = useNavigate();
+   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user")));
 
   const firstLoad = useRef(true);
-  const user = JSON.parse(localStorage.getItem("user"));
-  if (!user) {
-    navigate("/login");
-  }
+
+  // Keep user state in sync with localStorage (for logout)
+  useEffect(() => {
+    const handleStorage = () => {
+      setUser(JSON.parse(localStorage.getItem("user")));
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      navigate("/login");
+    }
+  }, [user, navigate]);
 
   const fetchAll = async () => {
     setLoading(true);
@@ -27,7 +40,7 @@ const Dashboard = () => {
             "Content-Type": "application/json"
           },
           withCredentials: true,
-        } // 👈 allow cookies to be sent
+        }
       );
       if (res.data.success) {
         setSessions(res.data.sessions);
@@ -40,6 +53,7 @@ const Dashboard = () => {
       setLoading(false);
     }
   };
+
 
   const handleDeleteKhata = async (id) => {
     if (!window.confirm("Are you sure you want to delete this khata?")) return;
@@ -65,26 +79,25 @@ const Dashboard = () => {
   };
 
   const handleLogout = async () => {
-  try {
-    await axios.post("https://store-management-backend-hcpb.onrender.com/api/auth/logout", {}, {
-      withCredentials: true, // ✅ send cookies
-    });
-    toast.success("Logged out successfully");
-    localStorage.removeItem("user")
-    navigate("/login");
-    // clear local state if needed
-  } catch (err) {
-    console.error("Logout error:", err);
-    toast.error("Logout failed");
-  }
-};
+    try {
+      await axios.post("https://store-management-backend-hcpb.onrender.com/api/auth/logout", {}, {
+        withCredentials: true, // ✅ send cookies
+      });
+      toast.success("Logged out successfully");
+      localStorage.removeItem("user")
+      navigate("/login");
+      // clear local state if needed
+    } catch (err) {
+      console.error("Logout error:", err);
+      toast.error("Logout failed");
+    }
+  };
   useEffect(() => {
-    if (firstLoad.current) {
+    if (firstLoad.current && user) {
       fetchAll();
       firstLoad.current = false;
     }
-  }, []);
-
+  }, [user]);
   // live search filter
   useEffect(() => {
     if (!search.trim()) {
