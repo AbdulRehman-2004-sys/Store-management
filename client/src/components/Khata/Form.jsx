@@ -15,7 +15,7 @@ const Form = () => {
 
   const [total, setTotal] = useState(0);
 
-  // Add new row
+  // ✅ Add new item row
   const addField = () => {
     setFormData((prev) => ({
       ...prev,
@@ -23,13 +23,13 @@ const Form = () => {
     }));
   };
 
-  // Customer details
+  // ✅ Handle customer details
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Dynamic items
+  // ✅ Handle dynamic item change
   const handleItemChange = (id, field, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -37,7 +37,7 @@ const Form = () => {
     }));
   };
 
-  // Calculate total
+  // ✅ Calculate total on change
   useEffect(() => {
     const newTotal = formData.items.reduce((acc, item) => {
       const qty = parseFloat(item.quantity) || 0;
@@ -47,7 +47,7 @@ const Form = () => {
     setTotal(newTotal);
   }, [formData]);
 
-  // Submit
+  // ✅ Submit
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -57,19 +57,19 @@ const Form = () => {
         customerName: formData.customerName,
         contactNumber: formData.contactNumber,
         items: formData.items.map((i) => ({
-          item: i.name, // ✅ fix: backend expects "name"
+          item: i.name,
           quantity: Number(i.quantity),
-          price: Number(i.price)
+          price: Number(i.price),
         })),
       };
 
-      const res = await axios.post("https://store-management-backend-hcpb.onrender.com/api/sessions/create", payload,
+      await axios.post(
+        "https://store-management-backend-hcpb.onrender.com/api/sessions/create",
+        payload,
         {
-          headers: {
-            "Content-Type": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           withCredentials: true,
-        } // 👈 allow cookies to be sent
+        }
       );
 
       toast.success("Session created successfully!");
@@ -83,32 +83,34 @@ const Form = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white shadow-md rounded-lg mt-4">
-      <h2 className="text-2xl font-bold mb-4">Store Management Form</h2>
+    <div className="max-w-3xl mx-auto p-4 sm:p-6 bg-white shadow-md rounded-lg mt-4">
+      <h2 className="text-xl sm:text-2xl font-bold mb-4 text-center sm:text-left">
+        Store Management Form
+      </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Customer Name */}
-        <div className="flex items-center gap-4">
-          <label className="w-40 text-sm font-medium">Customer Name</label>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+          <label className="sm:w-40 text-sm font-medium">Customer Name</label>
           <input
             type="text"
             name="customerName"
             value={formData.customerName}
             onChange={handleChange}
-            className="flex-1 p-2 border rounded-md"
+            className="flex-1 p-2 border rounded-md w-full"
             required
           />
         </div>
 
         {/* Contact Number */}
-        <div className="flex items-center gap-4">
-          <label className="w-40 text-sm font-medium">Contact Number</label>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+          <label className="sm:w-40 text-sm font-medium">Contact Number</label>
           <input
             type="text"
             name="contactNumber"
             value={formData.contactNumber}
             onChange={handleChange}
-            className="flex-1 p-2 border rounded-md"
+            className="flex-1 p-2 border rounded-md w-full"
             required
           />
         </div>
@@ -116,35 +118,44 @@ const Form = () => {
         {/* Items */}
         <div>
           <h3 className="text-lg font-semibold mb-2">Items</h3>
+
           {formData.items.map((field) => (
-            <div key={field.id} className="border p-3 rounded-md mb-3 bg-gray-50">
-              <div className="flex items-center gap-4 mb-2">
-                <label className="w-32 text-sm font-medium">Item</label>
+            <div
+              key={field.id}
+              className="border p-3 rounded-md mb-4 bg-gray-50 space-y-4"
+            >
+              {/* Item Name */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <label className="sm:w-32 text-sm font-medium">Item</label>
                 <input
                   type="text"
                   value={field.name}
                   onChange={(e) => handleItemChange(field.id, "name", e.target.value)}
-                  className="flex-1 p-2 border rounded-md"
+                  className="flex-1 p-2 border rounded-md w-full"
                 />
               </div>
 
-              <div className="flex items-center gap-4 mb-2">
-                <label className="w-32 text-sm font-medium">Quantity / Weight</label>
+              {/* Quantity */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <label className="sm:w-32 text-sm font-medium">
+                  Quantity / Weight
+                </label>
                 <input
                   type="number"
                   value={field.quantity}
                   onChange={(e) => handleItemChange(field.id, "quantity", e.target.value)}
-                  className="flex-1 p-2 border rounded-md"
+                  className="flex-1 p-2 border rounded-md w-full"
                 />
               </div>
 
-              <div className="flex items-center gap-4 mb-2">
-                <label className="w-32 text-sm font-medium">Price</label>
+              {/* Price */}
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <label className="sm:w-32 text-sm font-medium">Price</label>
                 <input
                   type="number"
                   value={field.price}
                   onChange={(e) => handleItemChange(field.id, "price", e.target.value)}
-                  className="flex-1 p-2 border rounded-md"
+                  className="flex-1 p-2 border rounded-md w-full"
                 />
               </div>
             </div>
@@ -153,20 +164,20 @@ const Form = () => {
           <button
             type="button"
             onClick={addField}
-            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+            className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 w-full sm:w-auto"
           >
             + Add Item
           </button>
         </div>
 
         {/* Total */}
-        <div className="flex items-center gap-4">
-          <label className="w-40 text-sm font-bold">Total</label>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+          <label className="sm:w-40 text-sm font-bold">Total</label>
           <input
             type="text"
             value={total}
             readOnly
-            className="flex-1 p-2 border rounded-md bg-gray-100 font-semibold"
+            className="flex-1 p-2 border rounded-md bg-gray-100 font-semibold w-full"
           />
         </div>
 
@@ -175,7 +186,7 @@ const Form = () => {
           type="submit"
           className="w-full py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
         >
-          {loading ? "creating..." : "Submit"}
+          {loading ? "Creating..." : "Submit"}
         </button>
       </form>
     </div>

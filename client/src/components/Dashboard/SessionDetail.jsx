@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast from "react-hot-toast";
 import jsPDF from "jspdf";
+
 const SessionDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -11,7 +12,6 @@ const SessionDetail = () => {
   const [loading, setLoading] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
 
-  // UI States
   const [showAddAmountInput, setShowAddAmountInput] = useState(false);
   const [extraAmount, setExtraAmount] = useState("");
   const [showPayInput, setShowPayInput] = useState(false);
@@ -19,274 +19,192 @@ const SessionDetail = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newItem, setNewItem] = useState({ item: "", quantity: "", price: "" });
 
+  // ✅ Fetch session by ID
   const fetchById = async () => {
     setDetailLoading(true);
     try {
-      const res = await axios.get(`https://store-management-backend-hcpb.onrender.com/api/sessions/${id}`,
-        {
-          headers: {
-            "Content-Type": "application/json"
-          },
-          withCredentials: true,
-        } // 👈 allow cookies to be sent
+      const res = await axios.get(
+        `https://store-management-backend-hcpb.onrender.com/api/sessions/${id}`,
+        { withCredentials: true }
       );
-      if (res.data.success) {
-        setSession(res.data.session);
-      }
+      if (res.data.success) setSession(res.data.session);
     } catch (err) {
-      console.error("Fetch session error:", err.response?.data || err.message);
-      alert("Failed to load session");
+      toast.error("Failed to load session");
     } finally {
       setDetailLoading(false);
     }
   };
 
-
   useEffect(() => {
-    if (id) {
-      fetchById();
-    }
+    if (id) fetchById();
   }, [id]);
 
+  // ✅ Download PDF Receipt
   const downloadReceipt = () => {
-  if (!session) return;
-  const doc = new jsPDF();
-  const pageWidth = doc.internal.pageSize.getWidth();
+    if (!session) return;
+    const doc = new jsPDF();
+    const w = doc.internal.pageSize.getWidth();
+    const h = doc.internal.pageSize.getHeight();
 
-  // === 🌟 Store Name ===
-  doc.setFontSize(26);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(40, 40, 40); // dark grey
-  doc.text("Taimoor Akram & Brothers", pageWidth / 2, 20, { align: "center" });
-
-  // Decorative double line
-  doc.setDrawColor(0);
-  doc.setLineWidth(0.8);
-  doc.line(20, 25, pageWidth - 20, 25);
-  doc.setLineWidth(0.3);
-  doc.line(20, 28, pageWidth - 20, 28);
-
-  // === 🧾 Receipt Title ===
-  doc.setTextColor(0, 0, 0);
-  doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.text("Customer Receipt", pageWidth / 2, 40, { align: "center" });
-
-  // === Border Around Content ===
-  doc.setDrawColor(0);
-  doc.setLineWidth(0.5);
-  doc.rect(10, 35, pageWidth - 20, 250);
-
-  // === Customer Info ===
-  doc.setFontSize(12);
-  doc.setTextColor(50, 50, 50);
-  let y = 55;
-
-  const addField = (label, value) => {
+    doc.setFillColor(245, 245, 245);
+    doc.rect(0, 0, w, h, "F");
     doc.setFont("helvetica", "bold");
-    doc.text(`${label}:`, 20, y);
-    doc.setFont("helvetica", "normal");
-    const val = value?.toString() || "";
-    doc.text(val, 65, y);
-    // underline value
-    const textWidth = doc.getTextWidth(val);
-    doc.setDrawColor(150);
-    doc.line(65, y + 1, 65 + textWidth, y + 1);
+    doc.setFontSize(24);
+    doc.setTextColor(0, 128, 0);
+    doc.text("Taimoor Akram & Brothers", w / 2, 30, { align: "center" });
+
+    doc.setDrawColor(255, 215, 0);
+    doc.line(20, 40, w - 20, 40);
+    doc.setFontSize(18);
+    doc.setTextColor(0);
+    doc.text("Customer Receipt", w / 2, 55, { align: "center" });
+
+    let y = 70;
+    const addField = (label, value) => {
+      doc.setFontSize(12);
+      doc.setFont("helvetica", "bold");
+      doc.text(`${label}:`, 20, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(`${value || ""}`, 65, y);
+      y += 10;
+    };
+
+    addField("Customer", session.customerName);
+    addField("Contact", session.contactNumber);
+    addField("Date", new Date(session.createdAt).toLocaleString());
+
+    y += 5;
+    doc.setFont("helvetica", "bold");
+    doc.text("Items:", 20, y);
     y += 10;
+
+    session.items.forEach((it, i) => {
+      doc.setFont("helvetica", "normal");
+      doc.text(
+        `${i + 1}) ${it.item} — ${it.quantity} x ${it.price} = ${
+          it.total ?? it.quantity * it.price
+        }`,
+        25,
+        y
+      );
+      y += 8;
+    });
+
+    y += 10;
+    doc.setFont("helvetica", "bold");
+    doc.text(`Grand Total: ${session.grandTotal}`, 20, y);
+    y += 8;
+    doc.text(`Remaining: ${session.remaining ?? 0}`, 20, y);
+
+    doc.save(`${session.customerName}_receipt.pdf`);
   };
 
-  addField("Customer Name", session.customerName);
-  addField("Contact", session.contactNumber);
-  addField(
-    "Date",
-    new Date(session.createdAt).toLocaleString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  );
-
-  // === Items ===
-  y += 5;
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(30, 30, 30);
-  doc.text("Purchased Items:", 20, y);
-  y += 8;
-
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(60, 60, 60);
-  session.items.forEach((it, i) => {
-    doc.text(
-      `${i + 1}) ${it.item} — ${it.quantity} × ${it.price} = ${(
-        it.quantity * it.price
-      ).toFixed(2)}`,
-      25,
-      y
-    );
-    y += 8;
-  });
-
-  // === Totals ===
-  y += 10;
-  doc.setTextColor(0, 0, 0);
-  doc.setFont("helvetica", "bold");
-  doc.text("Grand Total:", 20, y);
-  doc.setFont("helvetica", "normal");
-  doc.text(`${session.grandTotal}`, 65, y);
-  doc.line(65, y + 1, 65 + doc.getTextWidth(`${session.grandTotal}`), y + 1);
-
-  y += 10;
-  doc.setFont("helvetica", "bold");
-  doc.text("Remaining:", 20, y);
-  doc.setFont("helvetica", "normal");
-  doc.text(`${session.remaining ?? 0}`, 65, y);
-  doc.line(
-    65,
-    y + 1,
-    65 + doc.getTextWidth(`${session.remaining ?? 0}`),
-    y + 1
-  );
-
-  // === Thank You Footer ===
-  doc.setFontSize(14);
-  doc.setFont("helvetica", "italic");
-  doc.setTextColor(80, 80, 80);
-  doc.text("✨ Thank you for shopping with us ✨", pageWidth / 2, 280, {
-    align: "center",
-  });
-
-  // Save PDF
-  doc.save(`${session.customerName}_receipt.pdf`);
-};
-
-
-
-  // ✅ Handle Add Amount
+  // === CRUD Handlers ===
   const handleAddAmount = async () => {
-    if (!extraAmount || isNaN(extraAmount)) return alert("Enter valid amount");
-    setLoading(true)
+    if (!extraAmount || isNaN(extraAmount)) return toast.error("Enter valid amount");
+    setLoading(true);
     try {
-      const res = await axios.patch(`https://store-management-backend-hcpb.onrender.com/api/sessions/${id}/add-amount`, { amount: Number(extraAmount) },
-        {
-          headers: {
-            "Content-Type": "application/json"
-          },
-          withCredentials: true,
-        } // 👈 allow cookies to be sent
+      const res = await axios.patch(
+        `https://store-management-backend-hcpb.onrender.com/api/sessions/${id}/add-amount`,
+        { amount: Number(extraAmount) },
+        { withCredentials: true }
       );
       if (res.data.success) {
         setSession(res.data.session);
         setExtraAmount("");
         setShowAddAmountInput(false);
       }
-    } catch (err) {
-      console.error("Add amount error:", err.response?.data || err.message);
-      alert("Failed to add amount");
+    } catch {
+      toast.error("Failed to add amount");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   };
 
-  // ✅ Handle Payment
   const handlePay = async () => {
-    if (!payAmount || isNaN(payAmount)) return alert("Enter valid amount");
-    setLoading(true)
+    if (!payAmount || isNaN(payAmount)) return toast.error("Enter valid amount");
+    setLoading(true);
     try {
-      const res = await axios.patch(`https://store-management-backend-hcpb.onrender.com/api/sessions/${id}/pay`, { amount: Number(payAmount) },
-        {
-          headers: {
-            "Content-Type": "application/json"
-          },
-          withCredentials: true,
-        } // 👈 allow cookies to be sent
-      )
+      const res = await axios.patch(
+        `https://store-management-backend-hcpb.onrender.com/api/sessions/${id}/pay`,
+        { amount: Number(payAmount) },
+        { withCredentials: true }
+      );
       if (res.data.success) {
         setSession(res.data.session);
         setPayAmount("");
         setShowPayInput(false);
       }
-    } catch (err) {
-      console.error("Payment error:", err.response?.data || err.message);
-      alert("Failed to record payment");
+    } catch {
+      toast.error("Payment failed");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   };
 
-  // ✅ Handle Add Item
   const handleAddItem = async () => {
-    if (!newItem.item || !newItem.quantity || !newItem.price) return alert("Fill all fields");
-    setLoading(true)
+    if (!newItem.item || !newItem.quantity || !newItem.price)
+      return toast.error("Fill all fields");
+    setLoading(true);
     try {
-      const res = await axios.patch(`https://store-management-backend-hcpb.onrender.com/api/sessions/${id}/add-item`, newItem,
-        {
-          headers: {
-            "Content-Type": "application/json"
-          },
-          withCredentials: true,
-        } // 👈 allow cookies to be sent
+      const res = await axios.patch(
+        `https://store-management-backend-hcpb.onrender.com/api/sessions/${id}/add-item`,
+        newItem,
+        { withCredentials: true }
       );
       if (res.data.success) {
         setSession(res.data.session);
         setNewItem({ item: "", quantity: "", price: "" });
         setShowAddForm(false);
       }
-    } catch (err) {
-      console.error("Add item error:", err.response?.data || err.message);
-      alert("Failed to add item");
+    } catch {
+      toast.error("Failed to add item");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   };
 
-  // Delete an item from a session
-  const deleteItem = async (sessionId, itemId, setSession) => {
+  const deleteItem = async (itemId) => {
+    if (!window.confirm("Delete this item?")) return;
     try {
-      alert("Are you sure you want to delete this item?");
       const res = await axios.delete(
-        `https://store-management-backend-hcpb.onrender.com/api/sessions/${sessionId}/items/${itemId}`,
-        {
-          headers: {
-            "Content-Type": "application/json"
-          },
-          withCredentials: true,
-        } // 👈 allow cookies to be sent
+        `https://store-management-backend-hcpb.onrender.com/api/sessions/${id}/items/${itemId}`,
+        { withCredentials: true }
       );
-
       if (res.data.success) {
-        toast.success("Item deleted successfully");
-        setSession(res.data.session); // update UI with new session data
+        toast.success("Item deleted");
+        setSession(res.data.session);
       }
-    } catch (err) {
-      console.error("Delete item error:", err.response?.data || err.message);
-      toast.error("Failed to delete item");
+    } catch {
+      toast.error("Failed to delete");
     }
   };
 
-  if (detailLoading) return <div className="w-full h-screen flex items-center justify-center z-50 "><h1 className="text-xl font-bold">Loading...</h1></div>;
+  if (detailLoading)
+    return (
+      <div className="w-full h-screen flex items-center justify-center">
+        <h1 className="text-xl font-bold">Loading...</h1>
+      </div>
+    );
+
   if (!session) return <p className="p-4">No session found.</p>;
 
   return (
     <div className="max-w-3xl mx-auto p-4 sm:p-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mt-8">
-        <button
-          onClick={() => navigate(-1)}
-          className="text-sm text-blue-600"
-        >
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mt-6">
+        <button onClick={() => navigate(-1)} className="text-blue-600 text-sm">
           ← Back
         </button>
         <button
           onClick={downloadReceipt}
-          className="px-4 py-2 bg-purple-600 text-white rounded-md w-full sm:w-auto"
+          className="w-full sm:w-auto px-4 py-2 bg-purple-600 text-white rounded-md"
         >
           Download Receipt
         </button>
       </div>
 
-      {/* Title */}
+      {/* Customer Info */}
       <h2 className="text-lg sm:text-xl font-bold mt-4 break-words">
         {session.customerName} — {session.contactNumber}
       </h2>
@@ -294,7 +212,7 @@ const SessionDetail = () => {
         Created: {new Date(session.createdAt).toLocaleString()}
       </p>
 
-      {/* Items List */}
+      {/* Items */}
       <div className="space-y-3">
         {session.items.map((it) => (
           <div
@@ -304,18 +222,20 @@ const SessionDetail = () => {
             <div className="flex-1">
               <div className="font-medium">{it.item}</div>
               <div className="text-xs sm:text-sm text-gray-600">
-                Weight / Quantity: {it.quantity}
+                Qty: {it.quantity}
               </div>
             </div>
             <div className="text-right text-sm sm:text-base">
-              <div>{it.quantity} × {it.price}</div>
+              <div>
+                {it.quantity} × {it.price}
+              </div>
               <div className="font-semibold">
-                Item Total: {it.total ?? it.quantity * it.price}
+                Total: {it.total ?? it.quantity * it.price}
               </div>
             </div>
             <button
-              onClick={() => deleteItem(session._id, it._id, setSession)}
-              className="px-3 py-1 rounded-md text-xs sm:text-sm bg-red-600 text-white self-end sm:self-auto"
+              onClick={() => deleteItem(it._id)}
+              className="self-end sm:self-auto px-3 py-1 rounded-md text-xs sm:text-sm bg-red-600 text-white"
             >
               Delete
             </button>
@@ -325,22 +245,25 @@ const SessionDetail = () => {
 
       {/* Totals */}
       <div className="mt-4 p-4 border rounded-md bg-white space-y-2">
-        <div className="flex justify-between items-center text-sm sm:text-base">
+        <div className="flex justify-between text-sm sm:text-base">
           <span className="font-semibold">Grand Total</span>
-          <span className="font-bold">{session.grandTotal ?? session.total ?? 0}</span>
+          <span className="font-bold">{session.grandTotal ?? 0}</span>
         </div>
-        <div className="flex justify-between items-center text-sm sm:text-base">
+        <div className="flex justify-between text-sm sm:text-base">
           <span className="font-semibold">Remaining</span>
-          <span className="font-bold text-red-600">{session.remaining ?? session.total ?? 0}</span>
+          <span className="font-bold text-red-600">
+            {session.remaining ?? 0}
+          </span>
         </div>
       </div>
 
-      {/* Add Amount */}
-      <div className="mt-4">
+      {/* Action Buttons (Responsive) */}
+      <div className="space-y-4 mt-6">
+        {/* Add Amount */}
         {!showAddAmountInput ? (
           <button
             onClick={() => setShowAddAmountInput(true)}
-            className="px-4 py-2 font-bold bg-red-600 text-white rounded w-full sm:w-auto"
+            className="w-full sm:w-auto px-4 py-2 bg-red-600 text-white rounded-md font-semibold"
           >
             Add Amount
           </button>
@@ -355,26 +278,24 @@ const SessionDetail = () => {
             />
             <button
               onClick={handleAddAmount}
-              className="px-4 py-2 bg-blue-600 text-white rounded w-full sm:w-auto"
+              className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md"
             >
-              {loading ? "adding..." : "Submit"}
+              {loading ? "Adding..." : "Submit"}
             </button>
             <button
               onClick={() => setShowAddAmountInput(false)}
-              className="px-4 py-2 bg-gray-400 text-white rounded w-full sm:w-auto"
+              className="w-full sm:w-auto px-4 py-2 bg-gray-400 text-white rounded-md"
             >
               Cancel
             </button>
           </div>
         )}
-      </div>
 
-      {/* Pay Section */}
-      <div className="mt-4">
+        {/* Pay Amount */}
         {!showPayInput ? (
           <button
             onClick={() => setShowPayInput(true)}
-            className="px-4 py-2 bg-yellow-500 text-black font-bold rounded w-full sm:w-auto"
+            className="w-full sm:w-auto px-4 py-2 bg-yellow-500 text-black rounded-md font-semibold"
           >
             Pay Amount
           </button>
@@ -389,31 +310,29 @@ const SessionDetail = () => {
             />
             <button
               onClick={handlePay}
-              className="px-4 py-2 bg-blue-600 text-white rounded w-full sm:w-auto"
+              className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md"
             >
-              {loading ? "paying..." : "Submit"}
+              {loading ? "Paying..." : "Submit"}
             </button>
             <button
               onClick={() => setShowPayInput(false)}
-              className="px-4 py-2 bg-gray-400 text-white rounded w-full sm:w-auto"
+              className="w-full sm:w-auto px-4 py-2 bg-gray-400 text-white rounded-md"
             >
               Cancel
             </button>
           </div>
         )}
-      </div>
 
-      {/* Add Item */}
-      <div className="mt-4">
+        {/* Add Item */}
         {!showAddForm ? (
           <button
             onClick={() => setShowAddForm(true)}
-            className="px-7 py-2 font-bold bg-purple-600 text-white rounded w-full sm:w-auto"
+            className="w-full sm:w-auto px-4 py-2 bg-purple-600 text-white rounded-md font-semibold"
           >
             Add Item
           </button>
         ) : (
-          <div className="space-y-2 p-3 border rounded-md bg-gray-50 mt-2">
+          <div className="space-y-2 p-3 border rounded-md bg-gray-50">
             <input
               type="text"
               placeholder="Item name"
@@ -423,9 +342,11 @@ const SessionDetail = () => {
             />
             <input
               type="number"
-              placeholder="Quantity / Weight"
+              placeholder="Quantity"
               value={newItem.quantity}
-              onChange={(e) => setNewItem({ ...newItem, quantity: e.target.value })}
+              onChange={(e) =>
+                setNewItem({ ...newItem, quantity: e.target.value })
+              }
               className="border p-2 rounded w-full"
             />
             <input
@@ -438,13 +359,13 @@ const SessionDetail = () => {
             <div className="flex flex-col sm:flex-row gap-2">
               <button
                 onClick={handleAddItem}
-                className="px-4 py-2 bg-blue-600 text-white rounded w-full sm:w-auto"
+                className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md"
               >
-                {loading ? "item-adding..." : "Submit"}
+                {loading ? "Adding..." : "Submit"}
               </button>
               <button
                 onClick={() => setShowAddForm(false)}
-                className="px-4 py-2 bg-gray-400 text-white rounded w-full sm:w-auto"
+                className="w-full sm:w-auto px-4 py-2 bg-gray-400 text-white rounded-md"
               >
                 Cancel
               </button>
@@ -453,7 +374,6 @@ const SessionDetail = () => {
         )}
       </div>
     </div>
-
   );
 };
 
