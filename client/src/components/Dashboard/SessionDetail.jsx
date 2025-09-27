@@ -39,65 +39,80 @@ const SessionDetail = () => {
     if (id) fetchById();
   }, [id]);
 
-  // ✅ Download PDF Receipt
-  const downloadReceipt = () => {
-    if (!session) return;
-    const doc = new jsPDF();
-    const w = doc.internal.pageSize.getWidth();
-    const h = doc.internal.pageSize.getHeight();
+// ✅ Mobile-friendly Download PDF Receipt
+const downloadReceipt = () => {
+  if (!session) return;
+  const doc = new jsPDF();
+  const w = doc.internal.pageSize.getWidth();
+  const h = doc.internal.pageSize.getHeight();
 
-    doc.setFillColor(245, 245, 245);
-    doc.rect(0, 0, w, h, "F");
+  // === Header Styling ===
+  doc.setFillColor(245, 245, 245);
+  doc.rect(0, 0, w, h, "F");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(24);
+  doc.setTextColor(0, 128, 0);
+  doc.text("Taimoor Akram & Brothers", w / 2, 30, { align: "center" });
+
+  doc.setDrawColor(255, 215, 0);
+  doc.line(20, 40, w - 20, 40);
+  doc.setFontSize(18);
+  doc.setTextColor(0);
+  doc.text("Customer Receipt", w / 2, 55, { align: "center" });
+
+  let y = 70;
+  const addField = (label, value) => {
+    doc.setFontSize(12);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(24);
-    doc.setTextColor(0, 128, 0);
-    doc.text("Taimoor Akram & Brothers", w / 2, 30, { align: "center" });
-
-    doc.setDrawColor(255, 215, 0);
-    doc.line(20, 40, w - 20, 40);
-    doc.setFontSize(18);
-    doc.setTextColor(0);
-    doc.text("Customer Receipt", w / 2, 55, { align: "center" });
-
-    let y = 70;
-    const addField = (label, value) => {
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.text(`${label}:`, 20, y);
-      doc.setFont("helvetica", "normal");
-      doc.text(`${value || ""}`, 65, y);
-      y += 10;
-    };
-
-    addField("Customer", session.customerName);
-    addField("Contact", session.contactNumber);
-    addField("Date", new Date(session.createdAt).toLocaleString());
-
-    y += 5;
-    doc.setFont("helvetica", "bold");
-    doc.text("Items:", 20, y);
+    doc.text(`${label}:`, 20, y);
+    doc.setFont("helvetica", "normal");
+    doc.text(`${value || ""}`, 65, y);
     y += 10;
-
-    session.items.forEach((it, i) => {
-      doc.setFont("helvetica", "normal");
-      doc.text(
-        `${i + 1}) ${it.item} — ${it.quantity} x ${it.price} = ${
-          it.total ?? it.quantity * it.price
-        }`,
-        25,
-        y
-      );
-      y += 8;
-    });
-
-    y += 10;
-    doc.setFont("helvetica", "bold");
-    doc.text(`Grand Total: ${session.grandTotal}`, 20, y);
-    y += 8;
-    doc.text(`Remaining: ${session.remaining ?? 0}`, 20, y);
-
-    doc.save(`${session.customerName}_receipt.pdf`);
   };
+
+  addField("Customer", session.customerName);
+  addField("Contact", session.contactNumber);
+  addField("Date", new Date(session.createdAt).toLocaleString());
+
+  y += 5;
+  doc.setFont("helvetica", "bold");
+  doc.text("Items:", 20, y);
+  y += 10;
+
+  session.items.forEach((it, i) => {
+    doc.setFont("helvetica", "normal");
+    doc.text(
+      `${i + 1}) ${it.item} — ${it.quantity} x ${it.price} = ${
+        it.total ?? it.quantity * it.price
+      }`,
+      25,
+      y
+    );
+    y += 8;
+  });
+
+  y += 10;
+  doc.setFont("helvetica", "bold");
+  doc.text(`Grand Total: ${session.grandTotal}`, 20, y);
+  y += 8;
+  doc.text(`Remaining: ${session.remaining ?? 0}`, 20, y);
+
+  // === Mobile-Safe Download ===
+  const blob = doc.output("blob");
+  const url = URL.createObjectURL(blob);
+
+  // Use an anchor to trigger the download
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${session.customerName}_receipt.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  // Clean up the object URL
+  URL.revokeObjectURL(url);
+};
+
 
   // === CRUD Handlers ===
   const handleAddAmount = async () => {
