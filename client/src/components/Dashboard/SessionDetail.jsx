@@ -39,14 +39,22 @@ const SessionDetail = () => {
     if (id) fetchById();
   }, [id]);
 
-// ✅ Mobile-friendly Download PDF Receipt
+// helper (above or inside component)
+const sanitizeFilename = (name = "receipt") =>
+  String(name)
+    .replace(/[^a-z0-9_\- ]+/gi, "") // remove unsafe chars
+    .trim()
+    .replace(/\s+/g, "_") || "receipt";
+
+// Mobile-friendly download
 const downloadReceipt = () => {
   if (!session) return;
+
+  // --- build the PDF (keeps your existing layout) ---
   const doc = new jsPDF();
   const w = doc.internal.pageSize.getWidth();
   const h = doc.internal.pageSize.getHeight();
 
-  // === Header Styling ===
   doc.setFillColor(245, 245, 245);
   doc.rect(0, 0, w, h, "F");
   doc.setFont("helvetica", "bold");
@@ -79,7 +87,7 @@ const downloadReceipt = () => {
   doc.text("Items:", 20, y);
   y += 10;
 
-  session.items.forEach((it, i) => {
+  (session.items || []).forEach((it, i) => {
     doc.setFont("helvetica", "normal");
     doc.text(
       `${i + 1}) ${it.item} — ${it.quantity} x ${it.price} = ${
@@ -97,21 +105,60 @@ const downloadReceipt = () => {
   y += 8;
   doc.text(`Remaining: ${session.remaining ?? 0}`, 20, y);
 
-  // === Mobile-Safe Download ===
-  const blob = doc.output("blob");
+  // --- create blob and URL ---
+  let blob = doc.output("blob");
+  // ensure correct mime-type (some browsers are picky)
+  if (blob.type !== "application/pdf") {
+    blob = new Blob([blob], { type: "application/pdf" });
+  }
+
+  if (!(blob instanceof Blob) || blob.size === 0) {
+    console.error("PDF blob is invalid:", blob);
+    alert("Could not generate PDF.");
+    return;
+  }
+
+  const filename = `${sanitizeFilename(session.customerName)}_receipt.pdf`;
   const url = URL.createObjectURL(blob);
 
-  // Use an anchor to trigger the download
+  // --- create anchor and trigger download ---
   const a = document.createElement("a");
+  a.style.display = "none";
   a.href = url;
-  a.download = `${session.customerName}_receipt.pdf`;
+  a.download = filename;
+  a.target = "_blank"; // helps some browsers
+  a.rel = "noopener noreferrer";
   document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
 
-  // Clean up the object URL
-  URL.revokeObjectURL(url);
+  // dispatch a proper click event
+  const clickEvt = new MouseEvent("click", {
+    view: window,
+    bubbles: true,
+    cancelable: true,
+  });
+  a.dispatchEvent(clickEvt);
+
+  // Some browsers ignore download for blobs — fallback: open in new tab shortly after
+  setTimeout(() => {
+    try {
+      window.open(url, "_blank");
+    } catch (e) {
+      // ignore
+    }
+  }, 500);
+
+  // IMPORTANT: don't revoke immediately — give the download manager time to access the URL
+  // cleanup after a reasonable delay
+  setTimeout(() => {
+    try {
+      if (document.body.contains(a)) document.body.removeChild(a);
+    } catch (e) {}
+    try {
+      URL.revokeObjectURL(url);
+    } catch (e) {}
+  }, 15000); // 15s should be enough for the mobile download manager to start
 };
+
 
 
   // === CRUD Handlers ===
